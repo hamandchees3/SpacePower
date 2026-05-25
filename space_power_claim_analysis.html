@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SpaceX Starlink Solar Power Claim — Fermi Analysis</title>
+<style>
+  :root{
+    --bg:#07111f; --bg2:#0b1629; --panel:#111d33; --panel2:#0d1a2e; --text:#eaf1ff; --muted:#aebbd2;
+    --line:#31415f; --accent:#ffd166; --accent2:#62d2ff; --good:#93f2ad; --bad:#ff8f8f; --warn:#ffc778;
+    --earth:#3c83f6; --sun:#ffd166; --beam:rgba(255,209,102,.30);
+    --shadow:rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 900px at 80% -20%,#19335e 0%,var(--bg) 50%,#03070e 100%);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+  a{color:#9bdcff;text-decoration-thickness:.08em;text-underline-offset:.18em}
+  header{padding:56px 22px 28px;max-width:1180px;margin:auto;display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center}
+  .eyebrow{letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;color:var(--accent2);font-weight:700}
+  h1{font-size:clamp(2.1rem,5vw,5rem);line-height:0.95;margin:.18em 0 .28em;letter-spacing:-.06em}
+  h2{font-size:clamp(1.6rem,3vw,2.4rem);line-height:1.08;letter-spacing:-.03em;margin:0 0 .6em}
+  h3{font-size:1.15rem;margin:1.4em 0 .5em;color:#fff}
+  p{margin:.75em 0;color:var(--muted)}
+  strong{color:#fff}
+  .lead{font-size:1.2rem;color:#dce7ff;max-width:860px}
+  .tweet{border:1px solid var(--line);background:rgba(0,0,0,.28);padding:18px;border-radius:18px;color:#dfe8ff;font-size:1.05rem}
+  .claim{font-size:1.25rem;color:white;margin-top:6px}
+  .grid{max-width:1180px;margin:0 auto;padding:16px 22px 54px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .full{grid-column:1/-1}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 14px 50px rgba(0,0,0,.22);position:relative;overflow:hidden}
+  .card:before{content:"";position:absolute;inset:0;background:radial-gradient(600px 120px at 10% 0%,rgba(98,210,255,.12),transparent 60%);pointer-events:none}
+  .card > *{position:relative}
+  .big-number{font-size:clamp(2rem,5vw,4.2rem);font-weight:800;letter-spacing:-.05em;line-height:1;color:#fff;margin:.18em 0}
+  .subtle{color:var(--muted);font-size:.92rem}
+  .verdict{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:18px}
+  .pill{border:1px solid var(--line);background:rgba(255,255,255,.04);padding:14px;border-radius:16px;color:var(--muted)}
+  .pill b{display:block;color:#fff;font-size:1.05rem;margin-bottom:4px}
+  .pill.good b{color:var(--good)} .pill.warn b{color:var(--warn)} .pill.bad b{color:var(--bad)}
+  .interactive{display:grid;grid-template-columns:390px 1fr;gap:22px;align-items:stretch}
+  .controls{display:flex;flex-direction:column;gap:15px}
+  label{display:block;font-size:.88rem;color:#d5e2ff;font-weight:650;margin-bottom:7px}
+  input[type="range"]{width:100%;accent-color:var(--accent)}
+  select,button{background:#0b1930;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit}
+  button{cursor:pointer;transition:.15s transform,.15s background;white-space:nowrap}
+  button:hover{background:#122748;transform:translateY(-1px)}
+  .button-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+  .control{padding:13px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(0,0,0,.18)}
+  .value{font-weight:800;color:#fff;float:right}
+  .viz{min-height:560px;display:grid;grid-template-rows:minmax(320px,1fr) auto;gap:16px}
+  canvas{width:100%;height:100%;min-height:320px;background:radial-gradient(600px 380px at 45% 45%,#13284b 0%,#07111f 70%);border:1px solid var(--line);border-radius:22px;display:block}
+  .outputs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .out{border:1px solid var(--line);background:rgba(0,0,0,.2);padding:13px;border-radius:16px;min-height:92px}
+  .out .num{font-size:1.45rem;font-weight:850;color:#fff;letter-spacing:-.04em;line-height:1.05}.out .lbl{font-size:.78rem;color:var(--muted);margin-top:5px}
+  .barwrap{height:18px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.08);margin-top:10px}
+  .bar{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:999px;width:0%}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.93rem;overflow:hidden;border-radius:14px}
+  .table th,.table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.09);text-align:right;vertical-align:top}
+  .table th:first-child,.table td:first-child{text-align:left}
+  .table th{color:#fff;background:rgba(255,255,255,.07);font-weight:750}.table td{color:#cfd9ec}.table tr:last-child td{border-bottom:0}
+  .note{border-left:4px solid var(--accent);padding:4px 0 4px 14px;color:#dfe8ff}
+  .equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;padding:12px 14px;overflow:auto;color:#e8f4ff}
+  .hist{height:160px;border:1px solid var(--line);border-radius:18px;background:rgba(0,0,0,.22);width:100%}
+  .source-list{columns:2;column-gap:28px;font-size:.9rem}.source-list li{break-inside:avoid;margin:0 0 .75em;color:var(--muted)}
+  .mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+  .mini{padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(0,0,0,.16)}
+  .mini b{display:block;color:#fff;font-size:1.5rem;letter-spacing:-.04em}.mini span{color:var(--muted);font-size:.84rem}
+  .ladder{height:120px;margin-top:14px;border:1px solid var(--line);border-radius:18px;background:rgba(0,0,0,.2);position:relative;overflow:hidden}
+  .tick{position:absolute;top:34px;width:1px;height:32px;background:rgba(255,255,255,.25)}.tick span{position:absolute;top:38px;transform:translateX(-50%);font-size:.75rem;color:var(--muted);white-space:nowrap}.marker{position:absolute;top:25px;width:12px;height:48px;border-radius:8px;background:var(--accent);box-shadow:0 0 20px rgba(255,209,102,.6);transform:translateX(-50%)}.marker.target{background:var(--bad);box-shadow:0 0 20px rgba(255,143,143,.55)}.marker.now{background:var(--accent2);box-shadow:0 0 20px rgba(98,210,255,.55)}.marker-label{position:absolute;top:6px;transform:translateX(-50%);font-size:.75rem;font-weight:700;color:#fff;white-space:nowrap}
+  footer{max-width:1180px;margin:0 auto;padding:0 22px 56px;color:var(--muted)}
+  @media (max-width:980px){header,.grid,.interactive{grid-template-columns:1fr}.outputs,.verdict,.mini-grid{grid-template-columns:1fr 1fr}.source-list{columns:1}.viz{min-height:auto}}
+  @media (max-width:620px){.outputs,.verdict,.mini-grid{grid-template-columns:1fr}header{padding-top:34px}.grid{padding-inline:14px}.card{padding:17px}.button-row button{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow">Scientific plausibility check</div>
+    <h1>Power plants in space?</h1>
+    <p class="lead">The tweet gets one thing surprisingly right: Starlink has already industrialized a nontrivial amount of solar electric hardware in orbit. The leap from “satellites power themselves” to “turn off fossil power plants by beaming energy home” is where the orders of magnitude hide.</p>
+  </div>
+  <div class="tweet">
+    <div class="subtle">Claim analyzed</div>
+    <div class="claim">“Two more 10× increases” from a ~1 GW Gen3 Starlink solar-power level would give enough power in space to beam excess microwaves to ground stations and shut off fossil fuel power plants.</div>
+  </div>
+</header>
+<main class="grid">
+  <section class="card full">
+    <h2>Bottom line</h2>
+    <div class="big-number">Not with two more 10× jumps.</div>
+    <p>Using the tweet’s own ladder — 10 MW → 100 MW → 1 GW → 10 GW → <strong>100 GW</strong> of in-space electrical power — and then applying a reasonable microwave-to-grid chain, the delivered power is roughly <strong>25–55 GW</strong>. That is about <strong>1–3%</strong> of today’s fossil electricity generation, not enough to “bam” the fossil fleet off the grid.</p>
+    <div class="verdict">
+      <div class="pill good"><b>Starlink power estimate</b> Mostly plausible as onboard solar electricity, if interpreted as average-ish power rather than nameplate peak.</div>
+      <div class="pill warn"><b>Microwave beaming</b> Physically real, but it requires purpose-built transmitters, rectennas, spectrum control, safety systems, and usually huge apertures.</div>
+      <div class="pill bad"><b>Two 10× steps</b> Off by roughly <strong>20–50×</strong> for fossil electricity after beaming losses, and more like <strong>100×+</strong> if the target is broader fossil energy.</div>
+    </div>
+  </section>
+
+  <section class="card full interactive" id="lab">
+    <div class="controls">
+      <h2>Interactive Fermi lab</h2>
+      <p class="subtle">Move the sliders. The default is the tweet’s implied “Gen3 plus two more 10× increases”: 100 GW in space.</p>
+      <div class="control">
+        <label>Average electrical power in space <span class="value" id="pSpaceVal"></span></label>
+        <input id="pSpace" type="range" min="-2" max="5" step="0.01" value="2" />
+        <div class="button-row">
+          <button data-preset="-2">Gen1: 10 MW</button>
+          <button data-preset="-1">Gen2: 100 MW</button>
+          <button data-preset="0">Gen3: 1 GW</button>
+          <button data-preset="2">Tweet + two 10×: 100 GW</button>
+          <button id="replaceBtn">Set to fossil-electric replacement</button>
+        </div>
+      </div>
+      <div class="control">
+        <label>Space-electricity → grid efficiency <span class="value" id="effVal"></span></label>
+        <input id="eff" type="range" min="10" max="70" step="1" value="40" />
+        <div class="subtle">Includes DC→RF, antenna, atmosphere, beam collection, rectenna, and grid electronics. NASA reference cases imply ~13% from incident sunlight to grid; from already-generated DC electricity, ~35–45% is a decent Fermi center.</div>
+      </div>
+      <div class="control">
+        <label>Orbit altitude <span class="value" id="altVal"></span></label>
+        <select id="altitude">
+          <option value="550">LEO / Starlink-like: 550 km</option>
+          <option value="1200">High LEO: 1,200 km</option>
+          <option value="20000">MEO: 20,000 km</option>
+          <option value="35786" selected>GEO: 35,786 km</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Microwave frequency <span class="value" id="freqVal"></span></label>
+        <input id="freq" type="range" min="2.45" max="10" step="0.05" value="5.8" />
+      </div>
+      <div class="control">
+        <label>Transmitting aperture diameter <span class="value" id="apVal"></span></label>
+        <input id="aperture" type="range" min="0" max="3.3" step="0.01" value="2.875" />
+        <div class="subtle">This is the coherent microwave aperture, not just “has a solar panel.” At GEO, hundreds of meters to kilometers are normal in serious SBSP concepts.</div>
+      </div>
+      <div class="control">
+        <label>Allowed average rectenna power density <span class="value" id="densVal"></span></label>
+        <input id="density" type="range" min="5" max="200" step="5" value="100" />
+      </div>
+      <div class="control">
+        <label>Average power per satellite <span class="value" id="satVal"></span></label>
+        <input id="satPower" type="range" min="1" max="150" step="1" value="40" />
+      </div>
+    </div>
+    <div class="viz">
+      <canvas id="orbitCanvas" width="900" height="520" aria-label="Animated Earth, Sun, satellite orbit, and microwave beam"></canvas>
+      <div class="outputs">
+        <div class="out"><div class="num" id="deliveredOut"></div><div class="lbl">Delivered grid power</div><div class="barwrap"><div class="bar" id="fossilBar"></div></div></div>
+        <div class="out"><div class="num" id="fossilOut"></div><div class="lbl">Share of fossil electricity replaced</div></div>
+        <div class="out"><div class="num" id="spotOut"></div><div class="lbl">Diffraction-limited first-null spot diameter</div></div>
+        <div class="out"><div class="num" id="rectOut"></div><div class="lbl">Rectenna diameter needed by density limit</div></div>
+        <div class="out"><div class="num" id="satOut"></div><div class="lbl">Satellites at selected per-sat power</div></div>
+        <div class="out"><div class="num" id="stepsOut"></div><div class="lbl">10× steps from 1 GW to replace fossil electricity</div></div>
+        <div class="out"><div class="num" id="sunOut"></div><div class="lbl">Beta=0 sunlit fraction at selected orbit</div></div>
+        <div class="out"><div class="num" id="massOut"></div><div class="lbl">Illustrative orbital hardware mass at 1.2 t/sat</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>Growth ladder vs. actual targets</h2>
+    <p>The tweet’s ladder is internally understandable: every generation is roughly an order of magnitude more onboard solar electric capacity. But the world’s fossil electricity fleet is measured in <strong>terawatts</strong>, not gigawatts.</p>
+    <div class="ladder" id="ladder"></div>
+    <div class="mini-grid">
+      <div class="mini"><b>~2.1 TW</b><span>Average fossil electricity target used here: coal + gas + a small oil/other fossil allowance.</span></div>
+      <div class="mini"><b>~5.2 TW</b><span>In-space electrical power needed if the beaming chain is 40% efficient.</span></div>
+      <div class="mini"><b>~21 TW</b><span>In-space power needed to be “ten times more” than fossil electricity, before arguing about delivery.</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Parameter check: Starlink’s solar power</h2>
+    <p>For Starlink-like LEO satellites, a back-of-envelope built from array areas and the solar constant makes the early numbers look plausible. The exact V3 power is not public in the same way; the table is an order-of-magnitude sanity check.</p>
+    <table class="table">
+      <thead><tr><th>Spacecraft proxy</th><th>Array area</th><th>Peak DC at 25–30% PV</th><th>LEO average after eclipse / pointing / conversion</th><th>Constellation implication</th></tr></thead>
+      <tbody>
+        <tr><td>V1.5-like</td><td>22.7 m²</td><td>7.7–9.3 kW</td><td>3.4–4.1 kW</td><td>3,000 sats ≈ 10–12 MW</td></tr>
+        <tr><td>V2 Mini-like</td><td>~105 m² solar wings</td><td>35.7–42.9 kW</td><td>15.9–19.1 kW</td><td>7,000 sats ≈ 110–134 MW</td></tr>
+        <tr><td>Full V2 / V3-ish proxy</td><td>~259 m² if two 6.4×20.2 m wings</td><td>88–106 kW</td><td>39–47 kW</td><td>~25,000 sats ≈ 1 GW</td></tr>
+      </tbody>
+    </table>
+    <p class="subtle">The LEO-average column uses: sunlit fraction ≈0.62 at 550 km under worst-case beta=0 geometry, 0.8 for pointing/temperature/operations, and 0.9 power conditioning. Different attitude strategies can move this by tens of percent, not orders of magnitude.</p>
+  </section>
+
+  <section class="card">
+    <h2>Parameter check: microwave beaming</h2>
+    <p>Microwave power transmission is not magic; it is aperture physics. Beam diameter scales roughly as:</p>
+    <div class="equation">spot diameter ≈ 2.44 × wavelength × range / transmitter diameter</div>
+    <p>At <strong>5.8 GHz</strong>, a <strong>750 m</strong> transmitter in <strong>GEO</strong> has a first-null footprint of about <strong>6 km</strong>. That lines up with NASA-style reference rectennas. A Starlink-sized aperture from LEO has a much smaller range, but also drastically less power per spacecraft and a fast-moving target. It is a communications constellation, not a power satellite swarm.</p>
+    <p class="note">A one-off 40 kW satellite can be beamed safely only by spreading it thinly. A useful grid plant wants gigawatts, which means a deliberately designed transmitter and a deliberately designed ground receiver.</p>
+  </section>
+
+  <section class="card full">
+    <h2>Monte Carlo gut check</h2>
+    <p>This small simulation jitters the beaming efficiency and the fossil-electricity target around the central estimate. With the current slider values, it shows the distribution of the fraction of fossil electricity replaced.</p>
+    <canvas class="hist" id="histCanvas" width="1000" height="220" aria-label="Monte Carlo histogram of fossil electricity replaced"></canvas>
+    <div class="outputs" style="margin-top:12px">
+      <div class="out"><div class="num" id="p05"></div><div class="lbl">5th percentile</div></div>
+      <div class="out"><div class="num" id="p50"></div><div class="lbl">Median</div></div>
+      <div class="out"><div class="num" id="p95"></div><div class="lbl">95th percentile</div></div>
+      <div class="out"><div class="num" id="mcNote"></div><div class="lbl">Interpretation</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>What would “turn off fossil power plants” require?</h2>
+    <p>Using ~2.1 TW as the fossil-electricity replacement target, the required in-space electrical power is:</p>
+    <div class="equation">P_space ≈ 2.1 TW / η_beam-to-grid</div>
+    <p>At 40% beaming-to-grid efficiency, that is about <strong>5.2 TW in space</strong>. Starting from 1 GW, that is <strong>3.7</strong> tenfold increases, not two. To have “ten times more power in space than fossil electricity” would require about <strong>21 TW</strong> in space, or <strong>4.3</strong> tenfold increases from 1 GW.</p>
+    <p>For a NASA-style 2 GW delivered SBSP plant, replacing ~2.1 TW would mean about <strong>1,000</strong> such plants. If each used a 4–6 km diameter rectenna, the receptor land area alone is roughly <strong>13,000–29,000 km²</strong>. That is large but not continent-sized; the harder part is likely orbital construction, cost, reliability, regulation, and managing gigawatt microwave beams.</p>
+  </section>
+
+  <section class="card">
+    <h2>Why Starlink is the wrong architecture</h2>
+    <p>Starlink satellites are solar-powered because every satellite must run radios, computers, propulsion, and batteries. That does not make them solar power satellites in the grid sense.</p>
+    <p>A grid SBSP system needs: solar collection, conversion to coherent microwave or laser energy, pointing, safe transmission, a large rectifying antenna on the ground, grid interconnection, and usually a high-capacity orbit. NASA’s decomposition has exactly those six functions: collect, convert, transmit, receive, convert, deliver.</p>
+    <p>LEO has a nice short range for diffraction, but each satellite moves across the sky in minutes and spends a significant fraction of each orbit in eclipse. GEO is ugly to launch to but looks nearly stationary from Earth and can see the sun almost continuously. That is why classic SBSP concepts usually live in GEO or use very carefully choreographed constellations.</p>
+  </section>
+
+  <section class="card full">
+    <h2>Self-critique and failure modes</h2>
+    <p><strong>Most favorable interpretation:</strong> If the tweet only means “SpaceX is rapidly scaling solar-electric hardware in space,” it is directionally insightful. The Starlink array-area math supports the 10 MW and 100 MW class claims, and a gigawatt-class future constellation is not physically silly.</p>
+    <p><strong>Least favorable interpretation:</strong> If it means two more 10× improvements from a 1 GW Gen3 network can replace fossil power plants, it is off by orders of magnitude. Two more 10× jumps gives 100 GW in space; after transmission losses that is a few tens of GW on the grid.</p>
+    <p><strong>Uncertainties that could move the answer:</strong> actual V3 array area and operating power; Starship launch cost and cadence; PV efficiency and degradation; whether one can manufacture ultra-light kilometer-scale phased arrays; regulatory limits on microwave power density; rectenna siting; and whether future demand is “replace fossil electricity” or “replace fossil primary energy after electrification.” None of these uncertainties rescue the two-10× claim. They decide whether SBSP is merely very hard or economically deranged.</p>
+  </section>
+
+  <section class="card full">
+    <h2>Sources used in the embedded calculations</h2>
+    <ol class="source-list">
+      <li>NASA solar irradiance science: total solar irradiance around 1361 W/m² at 1 AU.</li>
+      <li>Jonathan McDowell’s Starlink simulation page summarizing FCC-filed Starlink dimensions: V1.5, V2 Mini, full V2 solar-array sizes.</li>
+      <li>Spaceflight Now report on V2 Mini: mass, two solar wings, ~30 m span, ~116 m² surface area, and Gen2 authorization context.</li>
+      <li>IEA Global Energy Review 2026: 2025 energy and electricity demand growth; fossil fuels still more than half of global electricity.</li>
+      <li>Ember / Carbon Brief / AP 2026 reporting: 2025 global electricity demand growth, coal and gas generation values, renewables share.</li>
+      <li>NASA Office of Technology, Policy, and Strategy SBSP report: six-function decomposition, 2 GW reference systems, 35% PV cells, 2.45/5.8 GHz, 4–6 km rectennas, efficiency chain, and cost conclusions.</li>
+      <li>47 CFR §1.1310 RF exposure limits: general-public power-density limit above 1.5 GHz of 1 mW/cm², i.e. 10 W/m², and occupational controlled limit of 5 mW/cm², i.e. 50 W/m².</li>
+    </ol>
+  </section>
+</main>
+<footer>
+  <p>All computations are Fermi-grade and intended to expose order-of-magnitude structure. They deliberately keep the model simple enough to interrogate.</p>
+</footer>
+<script>
+const SOLAR = 1361.6;
+const FOSSIL_ELEC_TW = 2.077; // coal + gas + allowance for oil/other fossil from 2025 electricity data
+const TOTAL_ELEC_TW = 3.624;
+const PRIMARY_ENERGY_TW = 19.5;
+const EARTH_R_KM = 6371;
+const $ = id => document.getElementById(id);
+const pSpace = $('pSpace'), eff = $('eff'), altitude = $('altitude'), freq = $('freq'), aperture = $('aperture'), density = $('density'), satPower = $('satPower');
+function fmtPowerGW(gw){
+  if(gw < 1) return (gw*1000).toFixed(gw<0.1?0:1)+' MW';
+  if(gw < 1000) return gw.toFixed(gw<10?2:gw<100?1:0)+' GW';
+  return (gw/1000).toFixed(gw<10000?2:1)+' TW';
+}
+function fmtNum(x, digits=1){return Number(x).toLocaleString(undefined,{maximumFractionDigits:digits});}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function state(){
+  const pGW = Math.pow(10, Number(pSpace.value));
+  const eta = Number(eff.value)/100;
+  const h = Number(altitude.value);
+  const fGHz = Number(freq.value);
+  const apM = Math.pow(10, Number(aperture.value));
+  const dens = Number(density.value);
+  const satKW = Number(satPower.value);
+  const deliveredGW = pGW * eta;
+  const fossilFrac = deliveredGW / (FOSSIL_ELEC_TW*1000);
+  const lambda = 0.299792458 / fGHz;
+  const spotM = 2.44 * lambda * h*1000 / apM;
+  const rectM = 2*Math.sqrt((deliveredGW*1e9) / dens / Math.PI);
+  const sats = pGW*1e6 / satKW;
+  const reqGW = FOSSIL_ELEC_TW*1000/eta;
+  const steps = Math.log10(reqGW/1);
+  const r = EARTH_R_KM + h;
+  const eclipseFrac = Math.asin(clamp(EARTH_R_KM/r,0,1))/Math.PI;
+  const sunFrac = 1-eclipseFrac;
+  return {pGW,eta,h,fGHz,apM,dens,satKW,deliveredGW,fossilFrac,lambda,spotM,rectM,sats,reqGW,steps,sunFrac};
+}
+function updateText(){
+  const s=state();
+  $('pSpaceVal').textContent = fmtPowerGW(s.pGW);
+  $('effVal').textContent = (s.eta*100).toFixed(0)+'%';
+  $('altVal').textContent = fmtNum(s.h,0)+' km';
+  $('freqVal').textContent = s.fGHz.toFixed(2)+' GHz';
+  $('apVal').textContent = s.apM<10 ? s.apM.toFixed(1)+' m' : fmtNum(s.apM,0)+' m';
+  $('densVal').textContent = fmtNum(s.dens,0)+' W/m²';
+  $('satVal').textContent = fmtNum(s.satKW,0)+' kW';
+  $('deliveredOut').textContent = fmtPowerGW(s.deliveredGW);
+  $('fossilOut').textContent = (s.fossilFrac*100).toFixed(s.fossilFrac<0.1?2:1)+'%';
+  $('spotOut').textContent = s.spotM<1000 ? fmtNum(s.spotM,0)+' m' : fmtNum(s.spotM/1000,1)+' km';
+  $('rectOut').textContent = s.rectM<1000 ? fmtNum(s.rectM,0)+' m' : fmtNum(s.rectM/1000,1)+' km';
+  $('satOut').textContent = fmtNum(s.sats,0);
+  $('stepsOut').textContent = s.steps.toFixed(2)+'×10';
+  $('sunOut').textContent = (s.sunFrac*100).toFixed(1)+'%';
+  $('massOut').textContent = fmtNum(s.sats*1.2/1000,1)+' kt';
+  $('fossilBar').style.width = clamp(s.fossilFrac*100,0,100)+'%';
+  drawLadder(s);
+  drawHist(s);
+}
+function drawLadder(s){
+  const el=$('ladder'); el.innerHTML='';
+  const min=-2, max=4.5; // GW logs: 10MW to ~31TW
+  const ticks=[-2,-1,0,1,2,3,4];
+  for(const t of ticks){
+    const x=(t-min)/(max-min)*100;
+    const div=document.createElement('div'); div.className='tick'; div.style.left=x+'%';
+    const span=document.createElement('span'); span.textContent=fmtPowerGW(Math.pow(10,t)); div.appendChild(span); el.appendChild(div);
+  }
+  function marker(logv, cls, label, dy=0){
+    const x=clamp((logv-min)/(max-min)*100,0,100);
+    const m=document.createElement('div'); m.className='marker '+cls; m.style.left=x+'%'; el.appendChild(m);
+    const l=document.createElement('div'); l.className='marker-label'; l.textContent=label; l.style.left=x+'%'; l.style.top=(dy?78:6)+'px'; el.appendChild(l);
+  }
+  marker(Math.log10(s.pGW),'now','selected');
+  marker(Math.log10(s.reqGW),'target','replace fossil electricity',1);
+  marker(Math.log10(FOSSIL_ELEC_TW*1000*10),'target','10× fossil electricity',0);
+}
+// deterministic-ish RNG for Monte Carlo
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
+function triangular(rng,a,c,b){const u=rng(); const fc=(c-a)/(b-a); return u<fc ? a+Math.sqrt(u*(b-a)*(c-a)) : b-Math.sqrt((1-u)*(b-a)*(b-c));}
+function percentile(arr,p){const idx=(arr.length-1)*p; const lo=Math.floor(idx), hi=Math.ceil(idx); if(lo===hi) return arr[lo]; return arr[lo]*(hi-idx)+arr[hi]*(idx-lo);}
+function drawHist(s){
+  const canvas=$('histCanvas'), ctx=canvas.getContext('2d'), W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
+  const rng=mulberry32(1234567); const vals=[];
+  const mode=s.eta, lo=clamp(mode-0.15,0.05,0.9), hi=clamp(mode+0.15,0.06,0.95);
+  for(let i=0;i<6000;i++){
+    const eta=triangular(rng,lo,mode,hi);
+    const targetTW=1.9 + rng()*0.4;
+    vals.push((s.pGW*eta/1000)/targetTW*100); // percent
+  }
+  vals.sort((a,b)=>a-b); const p5=percentile(vals,.05), p50=percentile(vals,.5), p95=percentile(vals,.95);
+  $('p05').textContent=p5.toFixed(p5<10?2:1)+'%'; $('p50').textContent=p50.toFixed(p50<10?2:1)+'%'; $('p95').textContent=p95.toFixed(p95<10?2:1)+'%';
+  $('mcNote').textContent=p50<10?'not close':p50<80?'partial':'near target';
+  const maxX=Math.max(5, Math.ceil(p95*1.5/5)*5); const bins=36; const counts=Array(bins).fill(0);
+  vals.forEach(v=>{let j=Math.min(bins-1,Math.floor(v/maxX*bins)); if(j>=0) counts[j]++;});
+  const maxC=Math.max(...counts);
+  ctx.fillStyle='rgba(255,255,255,.04)'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){const x=50+(W-80)*i/5; ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x,H-38); ctx.stroke(); ctx.fillStyle='rgba(234,241,255,.65)'; ctx.font='13px system-ui'; ctx.textAlign='center'; ctx.fillText((maxX*i/5).toFixed(0)+'%',x,H-14)}
+  const base=H-38, plotH=H-60, bw=(W-80)/bins;
+  for(let i=0;i<bins;i++){const h=counts[i]/maxC*plotH; const x=50+i*bw; ctx.fillStyle='rgba(98,210,255,.75)'; ctx.fillRect(x,base-h,bw-2,h);}
+  function vline(v,color,label){const x=50+clamp(v/maxX,0,1)*(W-80); ctx.strokeStyle=color; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x,base); ctx.stroke(); ctx.fillStyle=color; ctx.font='bold 13px system-ui'; ctx.textAlign='center'; ctx.fillText(label,x,14);}
+  vline(p50,'#ffd166','median'); vline(100,'#ff8f8f','100% target');
+}
+const canvas=$('orbitCanvas'), ctx=canvas.getContext('2d'); let t0=performance.now();
+function drawOrbit(){
+  const s=state(); const W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
+  const cx=W*0.54, cy=H*0.52, earthR=52;
+  // starfield
+  ctx.fillStyle='#07111f'; ctx.fillRect(0,0,W,H);
+  const seed=42; for(let i=0;i<120;i++){const x=(Math.sin(i*12.989+seed)*43758.5453)%1; const y=(Math.sin(i*78.23+seed)*12345.678)%1; ctx.fillStyle='rgba(255,255,255,'+(0.12+((i*37)%100)/450)+')'; ctx.fillRect(Math.abs(x)*W,Math.abs(y)*H,1.2,1.2)}
+  // sun and rays
+  const sunX=80, sunY=90; const grad=ctx.createRadialGradient(sunX,sunY,8,sunX,sunY,70); grad.addColorStop(0,'#fff2a8'); grad.addColorStop(.45,'#ffd166'); grad.addColorStop(1,'rgba(255,209,102,0)'); ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(sunX,sunY,70,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ffd166'; ctx.beginPath(); ctx.arc(sunX,sunY,22,0,Math.PI*2); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.font='bold 14px system-ui'; ctx.fillText('Sun',sunX-13,sunY+48);
+  ctx.strokeStyle='rgba(255,209,102,.20)'; ctx.lineWidth=1; for(let yy=40; yy<H; yy+=38){ctx.beginPath(); ctx.moveTo(120,yy); ctx.lineTo(W-20,yy+70); ctx.stroke();}
+  // earth shadow cone away from sun
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.moveTo(cx+earthR*.7,cy-earthR*.8); ctx.lineTo(W,cy-150); ctx.lineTo(W,cy+150); ctx.lineTo(cx+earthR*.7,cy+earthR*.8); ctx.closePath(); ctx.fill();
+  // scale orbit: interpolate log altitude
+  const minH=550, maxH=35786; const u=(Math.log(s.h)-Math.log(minH))/(Math.log(maxH)-Math.log(minH)); const orbitR=earthR+32+u*165;
+  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(cx,cy,orbitR,0,Math.PI*2); ctx.stroke();
+  // Earth
+  const egrad=ctx.createRadialGradient(cx-18,cy-20,10,cx,cy,earthR); egrad.addColorStop(0,'#6bb8ff'); egrad.addColorStop(.55,'#2e73db'); egrad.addColorStop(1,'#0a347d'); ctx.fillStyle=egrad; ctx.beginPath(); ctx.arc(cx,cy,earthR,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(147,242,173,.8)'; ctx.beginPath(); ctx.ellipse(cx-15,cy+4,16,7,.4,0,Math.PI*2); ctx.ellipse(cx+18,cy-14,11,5,-.4,0,Math.PI*2); ctx.ellipse(cx+9,cy+22,19,6,.1,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(cx,cy,earthR,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.85)'; ctx.font='bold 14px system-ui'; ctx.textAlign='center'; ctx.fillText('Earth',cx,cy+earthR+22);
+  // satellite position
+  const elapsed=(performance.now()-t0)/1000; const ang=elapsed*0.38 + 0.6; const sx=cx+orbitR*Math.cos(ang), sy=cy+orbitR*Math.sin(ang);
+  const groundAng=ang+Math.PI; const gx=cx+earthR*Math.cos(groundAng), gy=cy+earthR*Math.sin(groundAng);
+  // beam cone width visual based on spot, log compressed
+  const spotKm=s.spotM/1000; const beamVisual=clamp(8+Math.log10(spotKm+1)*15,8,48);
+  const vx=gx-sx, vy=gy-sy; const len=Math.hypot(vx,vy); const nx=-vy/len, ny=vx/len;
+  ctx.fillStyle='rgba(255,209,102,.24)'; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(gx+nx*beamVisual,gy+ny*beamVisual); ctx.lineTo(gx-nx*beamVisual,gy-ny*beamVisual); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,209,102,.65)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(gx,gy); ctx.stroke();
+  // satellite body
+  ctx.save(); ctx.translate(sx,sy); ctx.rotate(ang+Math.PI/2); ctx.fillStyle='#eaf1ff'; ctx.fillRect(-7,-5,14,10); ctx.fillStyle='#62d2ff'; ctx.fillRect(-33,-3,24,6); ctx.fillRect(9,-3,24,6); ctx.restore();
+  ctx.fillStyle='rgba(255,255,255,.95)'; ctx.font='bold 13px system-ui'; ctx.textAlign='left'; ctx.fillText(fmtNum(s.h,0)+' km',sx+12,sy-12);
+  // labels
+  ctx.fillStyle='rgba(234,241,255,.86)'; ctx.font='13px system-ui'; ctx.textAlign='left';
+  ctx.fillText('Beam spot ≈ '+(s.spotM<1000?fmtNum(s.spotM,0)+' m':fmtNum(s.spotM/1000,1)+' km'),24,H-62);
+  ctx.fillText('Aperture '+(s.apM<10?s.apM.toFixed(1):fmtNum(s.apM,0))+' m @ '+s.fGHz.toFixed(2)+' GHz',24,H-38);
+  ctx.fillText('Pspace '+fmtPowerGW(s.pGW)+' → grid '+fmtPowerGW(s.deliveredGW),24,H-14);
+  requestAnimationFrame(drawOrbit);
+}
+for(const el of [pSpace,eff,altitude,freq,aperture,density,satPower]) el.addEventListener('input',updateText);
+document.querySelectorAll('button[data-preset]').forEach(b=>b.addEventListener('click',()=>{pSpace.value=b.dataset.preset; updateText();}));
+$('replaceBtn').addEventListener('click',()=>{const eta=Number(eff.value)/100; const reqGW=FOSSIL_ELEC_TW*1000/eta; pSpace.value=clamp(Math.log10(reqGW),-2,5); updateText();});
+updateText(); drawOrbit();
+</script>
+</body>
+</html>
